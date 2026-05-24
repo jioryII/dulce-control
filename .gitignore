@@ -1,0 +1,36 @@
+# Dependencias
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Build
+dist/
+dist-ssr/
+client/dist/
+
+# Entorno y Secretos
+.env
+.env.*
+!.env.example
+server/.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Archivos de sistema y multimedia pesados si no se desean en el repo
+multimedia/
+ingenieria_software_pasteleria.md.pdf

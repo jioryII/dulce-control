@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: #FAFAF8;
+  --color-bg-secondary: #F6F4F1;
+  --color-bg-dark: #F2F0EC;
+  
+  /* Dynamic Theme Variables */
+  --color-brand-primary: var(--theme-primary, #E67E43);
+  --color-brand-accent: var(--theme-accent, #FFB347);
+  --color-brand-soft: var(--theme-soft, #FFF3E0);
+  
+  --color-pastel-cream: #FFFDE7;
+  --color-pastel-orange: #FFE0B2;
+  --color-pastel-cyan: #E0F7FA;
+  --color-pastel-red: #FFCDD2;
+
+  --color-text-primary: #3C3C3E;
+  --color-text-secondary: #7E7E83;
+  --color-text-muted: #BCBCBD;
+  
+  --color-border: #EBEBEB;
+
+  --radius-apple-sm: 8px;
+  --radius-apple-md: 12px;
+  --radius-apple-lg: 16px;
+  --radius-apple-xl: 24px;
+
+  --shadow-lg: 0 20px 50px rgba(0,0,0,0.03);
+}
+
+/* Enable Dark Mode via Class Strategy in Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root.dark {
+  --color-bg-primary: #121212;
+  --color-bg-secondary: #1C1C1E;
+  --color-bg-dark: #0A0A0A;
+  
+  --color-text-primary: #F5F5F7;
+  --color-text-secondary: #A1A1A6;
+  --color-text-muted: #636366;
+  
+  --color-border: #2C2C2E;
+  
+  /* Soft brand color adapted for dark mode */
+  --color-brand-soft: rgba(230, 126, 67, 0.15); 
+  
+  --color-pastel-cream: #2C2C1E;
+  --color-pastel-orange: #2C241E;
+  --color-pastel-cyan: #1E2C2C;
+  --color-pastel-red: #2C1E1E;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-primary text-text-primary antialiased transition-colors duration-300;
+    font-family: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-brand-primary text-white px-4 py-2 rounded-apple-md hover:opacity-90 transition-all active:scale-95 font-medium cursor-pointer flex items-center justify-center gap-2;
+  }
+  
+  .input-pastel {
+    @apply bg-white dark:bg-[#1C1C1E] border border-border text-text-primary rounded-apple-md px-4 py-2 focus:ring-4 focus:ring-brand-soft/50 focus:border-brand-accent outline-none transition-all;
+  }
+
+  .card-apple {
+    @apply bg-white dark:bg-[#1C1C1E] p-6 rounded-apple-xl shadow-lg border border-border transition-colors duration-300;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-border dark:bg-[#3A3A3C] rounded-full hover:bg-text-muted transition-colors;
+}
