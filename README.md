@@ -1,7 +1,7 @@
 
 
 <div align="center">
-  <img src="client/public/multimedia/dulce-logo2_.png" alt="Dulce Control Logo" width="90%" />
+  <img src="client/public/multimedia/dulce-logo2_.png" alt="Dulce Control Logo" width="60%" />
   <p><strong>Gestión integral de producción, ventas y logística para pastelerías.</strong></p>
 </div>
 
