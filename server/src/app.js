@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const config = require('./config/env');
+const path = require('path');
 
 const app = express();
 
@@ -37,6 +38,14 @@ app.get('/api/health', (req, res) => {
     system: 'Dulce Control',
     timestamp: new Date().toISOString()
   });
+});
+
+// Servir frontend en producción
+app.use(express.static(path.join(__dirname, '../../client/dist')));
+
+// Manejar cualquier otra ruta con el index.html del frontend (SPA)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
 
 // Basic Error Handler
