@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "cd server && npm install && cd ../client && npm install && npm run build",
-    "start": "node index.js",
+    "start": "node server/setup-prod.js && node index.js",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd server && npm run dev",
     "client": "cd client && npm run dev",

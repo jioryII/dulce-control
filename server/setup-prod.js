@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-// Script para inicializar la base de datos en producción (Render)
+// Script para inicializar la base de datos automáticamente al iniciar el servidor
 async function setupProd() {
   const config = {
     host: process.env.DB_HOST,
@@ -13,38 +13,61 @@ async function setupProd() {
     database: process.env.DB_NAME,
   };
 
-  if (config.host && config.host.includes('.com')) {
+  // Solo actuar si hay credenciales configuradas
+  if (!config.host) {
+    console.log('⚠️ No hay DB_HOST configurado. Saltando setup de base de datos.');
+    return;
+  }
+
+  if (config.host.includes('.com')) {
     config.ssl = { rejectUnauthorized: false };
   }
 
   const client = new Client(config);
 
   try {
-    console.log(`📡 Conectando a ${config.host}...`);
     await client.connect();
-    console.log('✅ Conexión exitosa.');
+    
+    // 1. Verificar si las tablas ya existen (comprobando la tabla 'usuarios')
+    const checkTableQuery = `
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'usuarios'
+      );
+    `;
+    const res = await client.query(checkTableQuery);
+    const tablesExist = res.rows[0].exists;
 
+    if (tablesExist) {
+      console.log('✅ Base de datos ya cuenta con las tablas. Continuando...');
+      await client.end();
+      return;
+    }
+
+    // 2. Si no existen, ejecutar el esquema
+    console.log('⚡ Base de datos vacía. Iniciando creación de tablas...');
     const sqlPath = path.join(__dirname, 'database.sql');
-    console.log(`📄 Leyendo esquema desde ${sqlPath}...`);
     const sql = fs.readFileSync(sqlPath, 'utf8');
-
-    console.log('⚡ Ejecutando scripts SQL de creación de tablas...');
     await client.query(sql);
-    console.log('✅ Tablas creadas exitosamente.');
+    console.log('✅ Tablas creadas con éxito.');
 
     await client.end();
 
-    // Ahora ejecutar el seed para crear el admin
-    console.log('🌱 Ejecutando seed de datos iniciales...');
-    // Usamos spawn para ejecutar seed.js de forma independiente o simplemente requerirlo si es modular
-    // Como seed.js tiene process.exit(0), mejor lo ejecutamos como comando.
+    // 3. Ejecutar el seed para crear el admin (sólo la primera vez)
+    console.log('🌱 Creando usuario administrador inicial...');
     const { execSync } = require('child_process');
-    execSync('node seed.js', { stdio: 'inherit' });
+    // Forzamos el directorio de trabajo para que el seed encuentre sus módulos
+    execSync('node seed.js', { 
+      cwd: __dirname,
+      stdio: 'inherit' 
+    });
     
-    console.log('\n✨ Configuración de producción completada.');
+    console.log('✨ Configuración de base de datos finalizada.');
   } catch (err) {
-    console.error('❌ Error configurando la base de datos:', err.message);
-    process.exit(1);
+    console.error('❌ Error en el setup automático de base de datos:', err.message);
+    // No salimos con error para permitir que el servidor intente iniciar de todos modos
+    // si la base de datos falla por otros motivos temporales.
   }
 }
 
