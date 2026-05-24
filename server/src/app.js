@@ -44,7 +44,7 @@ app.get('/api/health', (req, res) => {
 app.use(express.static(path.join(__dirname, '../../client/dist')));
 
 // Manejar cualquier otra ruta con el index.html del frontend (SPA)
-app.get('*', (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
 
