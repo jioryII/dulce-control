@@ -16,7 +16,7 @@ const DashboardPage = () => {
   const [observacion, setObservacion] = useState('');
   
   const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
+    baseURL: '/api',
     headers: { Authorization: `Bearer ${token}` }
   });
 

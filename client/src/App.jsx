@@ -37,7 +37,7 @@ function App() {
     const checkAuth = async () => {
       if (token && !user) {
         try {
-          const { data } = await axios.get('http://localhost:3001/api/auth/me', {
+          const { data } = await axios.get('/api/auth/me', {
             headers: { Authorization: `Bearer ${token}` }
           });
           setUser(data);
