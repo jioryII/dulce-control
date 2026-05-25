@@ -41,12 +41,36 @@ class VehiculoService {
   }
 
   static async registrarEnvio(data) {
-    const { jornada_id, vehiculo_id, hora_salida, observacion } = data;
-    const { rows } = await pool.query(
-      "INSERT INTO vehiculo_envios (jornada_id, vehiculo_id, hora_salida, observacion, estado) VALUES ($1, $2, $3, $4, 'enviado') RETURNING id",
-      [jornada_id, vehiculo_id, hora_salida, observacion]
-    );
-    return rows[0].id;
+    const { jornada_id, vehiculo_id, hora_salida, observacion, productos } = data;
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      const { rows } = await client.query(
+        "INSERT INTO vehiculo_envios (jornada_id, vehiculo_id, hora_salida, observacion, estado) VALUES ($1, $2, $3, $4, 'enviado') RETURNING id",
+        [jornada_id, vehiculo_id, hora_salida, observacion]
+      );
+      
+      const envioId = rows[0].id;
+      
+      if (productos && productos.length > 0) {
+        for (const prod of productos) {
+          await client.query(
+            'INSERT INTO vehiculo_envios_detalle (envio_id, producto_id, cantidad_enviada) VALUES ($1, $2, $3)',
+            [envioId, prod.producto_id, prod.cantidad]
+          );
+        }
+      }
+      
+      await client.query('COMMIT');
+      return envioId;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   static async liquidarEnvio(data) {

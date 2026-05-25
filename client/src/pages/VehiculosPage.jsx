@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
-import { Truck, Plus, Search, Edit2, Trash2, X, User, CreditCard, History, Calendar as CalendarIcon, Clock, CheckCircle2 } from 'lucide-react';
+import { Truck, Plus, Search, Edit2, Trash2, X, User, CreditCard, History, Calendar as CalendarIcon, Clock, CheckCircle2, Send, Loader2, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const VehiculosPage = () => {
@@ -11,6 +11,7 @@ const VehiculosPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [editingVehiculo, setEditingVehiculo] = useState(null);
   const [selectedVehiculo, setSelectedVehiculo] = useState(null);
 
@@ -20,9 +21,57 @@ const VehiculosPage = () => {
     responsable: ''
   });
 
+  const [sendFormData, setSendFormData] = useState({
+    hora_salida: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+    observacion: '',
+    productos: []
+  });
+
+  const [currentProduct, setCurrentProduct] = useState({ id: '', cantidad: '' });
+
+  const addProductToEnvio = () => {
+    if (!currentProduct.id || !currentProduct.cantidad) return toast.error('Selecciona producto y cantidad');
+    
+    const prod = productos.find(p => p.id === parseInt(currentProduct.id));
+    
+    setSendFormData(prev => ({
+      ...prev,
+      productos: [...prev.productos, { 
+        producto_id: prod.id, 
+        nombre: prod.nombre, 
+        cantidad: parseInt(currentProduct.cantidad) 
+      }]
+    }));
+    
+    setCurrentProduct({ id: '', cantidad: '' });
+  };
+
+  const removeProductFromEnvio = (index) => {
+    setSendFormData(prev => ({
+      ...prev,
+      productos: prev.productos.filter((_, i) => i !== index)
+    }));
+  };
+
   const api = axios.create({
     baseURL: '/api',
     headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const { data: productos = [] } = useQuery({
+    queryKey: ['productos'],
+    queryFn: async () => {
+      const { data } = await api.get('/productos');
+      return data;
+    }
+  });
+
+  const { data: jornada } = useQuery({
+    queryKey: ['jornada-hoy'],
+    queryFn: async () => {
+      const { data } = await api.get('/jornada/hoy');
+      return data;
+    }
   });
 
   const { data: vehiculos = [], isLoading } = useQuery({
@@ -61,6 +110,22 @@ const VehiculosPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(['vehiculos']);
       toast.success('Vehículo eliminado');
+    }
+  });
+
+  const enviarVehiculoMutation = useMutation({
+    mutationFn: (data) => api.post('/vehiculos/envios', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['vehiculos', 'vehiculo-historial', 'envios-activos']);
+      toast.success('Vehículo enviado a ruta');
+      setIsSendModalOpen(false);
+      setSendFormData({
+        hora_salida: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        observacion: ''
+      });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Error al enviar vehículo');
     }
   });
 
@@ -192,13 +257,26 @@ const VehiculosPage = () => {
               </div>
             </div>
 
-            <button 
-              onClick={() => openHistory(vehiculo)}
-              className="w-full mt-4 py-2 text-xs font-bold text-brand-primary hover:bg-brand-soft rounded-apple-md transition-colors border border-transparent hover:border-brand-accent/20 flex items-center justify-center gap-2"
-            >
-              <History size={14} />
-              Ver Historial de Salidas →
-            </button>
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <button 
+                onClick={() => openHistory(vehiculo)}
+                className="py-2 text-[10px] font-bold text-brand-primary hover:bg-brand-soft rounded-apple-md transition-colors border border-brand-accent/10 flex items-center justify-center gap-1"
+              >
+                <History size={12} />
+                Historial
+              </button>
+              <button 
+                onClick={() => {
+                  if (!jornada) return toast.error('Debes abrir la jornada primero');
+                  setSelectedVehiculo(vehiculo);
+                  setIsSendModalOpen(true);
+                }}
+                className="py-2 text-[10px] font-black uppercase tracking-widest bg-brand-primary text-white hover:bg-brand-accent rounded-apple-md transition-all shadow-sm flex items-center justify-center gap-1"
+              >
+                <Send size={12} />
+                Enviar
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -357,6 +435,135 @@ const VehiculosPage = () => {
                   Cerrar
                </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Send to Route Modal */}
+      {isSendModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setIsSendModalOpen(false)} />
+          <div className="bg-white w-full max-w-md rounded-[32px] shadow-2xl z-10 overflow-hidden animate-in zoom-in duration-300">
+            <div className="p-6 border-b border-border flex justify-between items-center bg-bg-primary/30">
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 bg-brand-soft rounded-apple-lg flex items-center justify-center text-brand-primary">
+                    <Send size={20} />
+                 </div>
+                 <h3 className="text-xl font-bold text-text-primary tracking-tight">Enviar a Ruta</h3>
+              </div>
+              <button onClick={() => setIsSendModalOpen(false)} className="text-text-muted hover:text-text-primary">
+                <X size={24} />
+              </button>
+            </div>
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                enviarVehiculoMutation.mutate({
+                  vehiculo_id: selectedVehiculo.id,
+                  jornada_id: jornada.id,
+                  ...sendFormData
+                });
+              }} 
+              className="p-6 space-y-4"
+            >
+              <div className="bg-bg-primary/50 p-4 rounded-apple-xl border border-border mb-4">
+                 <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1">Vehículo Seleccionado</p>
+                 <p className="text-lg font-bold text-text-primary">{selectedVehiculo?.nombre} • <span className="font-mono text-sm">{selectedVehiculo?.placa}</span></p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-text-secondary uppercase tracking-wider px-1">Hora de Salida</label>
+                <input 
+                  type="time" 
+                  required
+                  className="input-pastel w-full h-12 text-xl font-bold"
+                  value={sendFormData.hora_salida}
+                  onChange={(e) => setSendFormData({...sendFormData, hora_salida: e.target.value})}
+                />
+              </div>
+
+              <div className="space-y-4 pt-2 border-t border-border">
+                <p className="text-[10px] font-black text-text-muted uppercase tracking-widest px-1">Productos a Enviar</p>
+                
+                <div className="flex gap-2">
+                   <select 
+                     className="input-pastel flex-1 h-12 text-sm"
+                     value={currentProduct.id}
+                     onChange={(e) => setCurrentProduct({...currentProduct, id: e.target.value})}
+                   >
+                     <option value="">Seleccionar...</option>
+                     {productos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                   </select>
+                   <input 
+                     type="number"
+                     placeholder="Cant."
+                     className="input-pastel w-20 h-12 text-center font-bold"
+                     value={currentProduct.cantidad}
+                     onChange={(e) => setCurrentProduct({...currentProduct, cantidad: e.target.value})}
+                   />
+                   <button 
+                     type="button"
+                     onClick={addProductToEnvio}
+                     className="w-12 h-12 bg-brand-soft text-brand-primary rounded-apple-lg flex items-center justify-center border border-brand-accent/20 active:scale-95 transition-all"
+                   >
+                     <Plus size={24} />
+                   </button>
+                </div>
+
+                {sendFormData.productos.length > 0 && (
+                  <div className="bg-bg-primary/30 rounded-apple-xl border border-border divide-y divide-border overflow-hidden">
+                    {sendFormData.productos.map((item, index) => (
+                      <div key={index} className="flex justify-between items-center p-3 text-sm">
+                         <div className="flex items-center gap-3">
+                            <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center font-black text-brand-primary border border-border">
+                               {item.cantidad}
+                            </span>
+                            <span className="font-bold text-text-primary">{item.nombre}</span>
+                         </div>
+                         <button 
+                           type="button"
+                           onClick={() => removeProductFromEnvio(index)}
+                           className="p-2 text-text-muted hover:text-red-500"
+                         >
+                           <X size={16} />
+                         </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-text-secondary uppercase tracking-wider px-1">Observación adicional</label>
+                <textarea 
+                  className="input-pastel w-full h-20 py-3 resize-none text-sm"
+                  placeholder="Notas opcionales..."
+                  value={sendFormData.observacion}
+                  onChange={(e) => setSendFormData({...sendFormData, observacion: e.target.value})}
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setIsSendModalOpen(false)} 
+                  className="flex-1 px-4 py-4 rounded-apple-xl bg-bg-secondary text-text-primary font-bold active:scale-95 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={enviarVehiculoMutation.isPending}
+                  className="flex-1 btn-primary py-4 flex items-center justify-center gap-2"
+                >
+                  {enviarVehiculoMutation.isPending ? <Loader2 className="animate-spin" /> : (
+                    <>
+                      <Send size={18} />
+                      Confirmar Envío
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

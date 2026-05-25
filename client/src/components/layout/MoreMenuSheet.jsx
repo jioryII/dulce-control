@@ -38,8 +38,7 @@ export const MoreMenuSheet = ({ isOpen, onClose }) => {
         className="fixed inset-0 bg-black/40 z-[1999] animate-in fade-in duration-300" 
         onClick={onClose} 
       />
-      <div className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1C1C1E] z-[2000] rounded-t-[32px] p-6 pb-[calc(24px+env(safe-area-inset-bottom))] animate-in slide-in-from-bottom duration-300 shadow-2xl border-t border-border`}>
-        <div className="w-12 h-1.5 bg-border dark:bg-[#3A3A3C] rounded-full mx-auto mb-6" />
+      <div className={`fixed bottom-0 left-0 right-0 md:left-auto md:right-4 md:bottom-24 bg-white dark:bg-[#1C1C1E] z-[2000] rounded-t-[32px] md:rounded-[32px] p-6 pb-[calc(24px+env(safe-area-inset-bottom))] animate-in slide-in-from-bottom duration-300 shadow-2xl border-t md:border border-border w-full md:max-w-xs`}>        <div className="w-12 h-1.5 bg-border dark:bg-[#3A3A3C] rounded-full mx-auto mb-6" />
         
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
