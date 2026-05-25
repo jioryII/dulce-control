@@ -283,9 +283,9 @@ const VehiculosPage = () => {
 
       {/* Modal Vehiculo */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={closeModal} />
-          <div className="bg-white w-full max-w-md rounded-[32px] shadow-2xl z-10 overflow-hidden animate-in zoom-in duration-300">
+          <div className="bg-white w-full max-w-[420px] rounded-[32px] shadow-2xl z-10 overflow-hidden animate-in zoom-in duration-300">
             <div className="p-6 border-b border-border flex justify-between items-center bg-bg-primary/30">
               <h3 className="text-xl font-bold text-text-primary">
                 {editingVehiculo ? 'Editar Vehículo' : 'Nuevo Vehículo'}
@@ -343,9 +343,9 @@ const VehiculosPage = () => {
 
       {/* History Modal */}
       {isHistoryModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={closeHistory} />
-          <div className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl z-10 overflow-hidden animate-in zoom-in duration-300">
+          <div className="bg-white w-full max-w-[700px] rounded-[40px] shadow-2xl z-10 overflow-hidden animate-in zoom-in duration-300">
             <div className="p-8 border-b border-border flex justify-between items-center bg-bg-primary/30">
               <div className="flex items-center gap-4">
                  <div className="w-12 h-12 bg-brand-soft rounded-apple-lg flex items-center justify-center text-brand-primary">
@@ -440,9 +440,9 @@ const VehiculosPage = () => {
       )}
       {/* Send to Route Modal */}
       {isSendModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setIsSendModalOpen(false)} />
-          <div className="bg-white w-full max-w-md rounded-[32px] shadow-2xl z-10 overflow-hidden animate-in zoom-in duration-300">
+          <div className="bg-white w-full max-w-[420px] rounded-[32px] shadow-2xl z-10 overflow-hidden animate-in zoom-in duration-300">
             <div className="p-6 border-b border-border flex justify-between items-center bg-bg-primary/30">
               <div className="flex items-center gap-3">
                  <div className="w-10 h-10 bg-brand-soft rounded-apple-lg flex items-center justify-center text-brand-primary">

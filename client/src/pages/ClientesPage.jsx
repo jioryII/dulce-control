@@ -178,9 +178,9 @@ const ClientesPage = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={closeModal} />
-          <div className="bg-white w-full max-w-md rounded-[32px] shadow-2xl z-10 overflow-hidden animate-in zoom-in fade-in duration-300">
+          <div className="bg-white w-full max-w-[420px] rounded-[32px] shadow-2xl z-10 overflow-hidden animate-in zoom-in fade-in duration-300">
             <div className="p-6 border-b border-border flex justify-between items-center">
               <h3 className="text-xl font-bold text-text-primary">
                 {editingCliente ? 'Editar Cliente' : 'Nuevo Cliente'}

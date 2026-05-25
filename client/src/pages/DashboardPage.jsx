@@ -357,10 +357,9 @@ const DashboardPage = () => {
 
       {/* Closing Modal / Bottom Sheet */}
       {isClosingModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
+        <div className="fixed inset-0 z-[3000] flex items-end md:items-center justify-center p-0 md:p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsClosingModalOpen(false)} />
-          <div className={`bg-white dark:bg-[#1C1C1E] w-full max-w-lg rounded-t-[32px] md:rounded-[32px] shadow-2xl z-10 overflow-hidden animate-in ${isMobile ? 'slide-in-from-bottom' : 'zoom-in'} duration-300 border-t md:border border-border flex flex-col max-h-[95vh]`}>
-            {isMobile && <div className="w-12 h-1.5 bg-border dark:bg-[#3A3A3C] rounded-full mx-auto mt-4" />}
+          <div className={`bg-white dark:bg-[#1C1C1E] w-full max-w-[500px] rounded-t-[32px] md:rounded-[32px] shadow-2xl z-10 overflow-hidden animate-in ${isMobile ? 'slide-in-from-bottom' : 'zoom-in'} duration-300 border-t md:border border-border flex flex-col max-h-[95vh]`}>            {isMobile && <div className="w-12 h-1.5 bg-border dark:bg-[#3A3A3C] rounded-full mx-auto mt-4" />}
             
             <div className="p-6 border-b border-border flex justify-between items-center bg-bg-primary/30">
               <div className="flex items-center gap-3">

@@ -47,7 +47,7 @@ const MainLayout = ({ children }) => {
 
       {!isMobile && <Sidebar />}
       
-      <main className={`flex-1 transition-all duration-300 p-4 lg:p-8 relative z-10 ${
+      <main className={`flex-1 transition-all duration-300 p-4 lg:p-8 relative ${
         isMobile ? 'pb-24' : 'ml-20 md:ml-64'
       }`}>
         {/* Header */}
