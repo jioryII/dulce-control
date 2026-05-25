@@ -71,6 +71,17 @@ const DashboardPage = () => {
     }
   });
 
+  const iniciarJornadaMutation = useMutation({
+    mutationFn: () => api.post('/jornada/abrir'),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['jornada-hoy', 'dashboard-stats']);
+      toast.success('Jornada iniciada con éxito');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Error al iniciar la jornada');
+    }
+  });
+
   const handleCerrarJornada = (e) => {
     e.preventDefault();
     if (!jornada) return;
@@ -307,14 +318,22 @@ const DashboardPage = () => {
 
             <div className="space-y-3">
               <p className="text-[10px] font-black text-text-muted uppercase tracking-widest px-1">Control</p>
-              {jornada?.estado === 'abierta' && (
+              {jornada?.estado === 'abierta' ? (
                 <button 
                   onClick={() => setIsClosingModalOpen(true)}
                   className="w-full btn-primary h-14 md:h-auto py-4 shadow-xl shadow-brand-primary/20 font-black text-sm tracking-wide"
                 >
                   Cerrar Jornada
                 </button>
-              )}
+              ) : !jornada ? (
+                <button 
+                  onClick={() => iniciarJornadaMutation.mutate()}
+                  disabled={iniciarJornadaMutation.isPending}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white rounded-apple-lg h-14 md:h-auto py-4 shadow-xl shadow-green-500/20 font-black text-sm tracking-wide flex items-center justify-center gap-2 transition-all"
+                >
+                  {iniciarJornadaMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : 'Iniciar Jornada'}
+                </button>
+              ) : null}
               <button 
                 onClick={generarPDF}
                 className="w-full bg-white dark:bg-[#1C1C1E] border border-border text-text-primary font-bold py-3 rounded-apple-lg text-xs md:text-sm active:bg-bg-primary transition-all flex items-center justify-center gap-2"
