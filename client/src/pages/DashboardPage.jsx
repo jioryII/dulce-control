@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingCart, Package, Users, TrendingUp, Sparkles, ArrowUpRight, Calendar, Loader2, X, Check, AlertCircle, FileText, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Package, Users, TrendingUp, Sparkles, ArrowUpRight, Calendar, Loader2, X, Check, AlertCircle, FileText, ChevronRight, Clock } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
