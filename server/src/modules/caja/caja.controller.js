@@ -2,7 +2,7 @@ const CajaService = require('./caja.service');
 
 const getResumen = async (req, res) => {
   try {
-    const resumen = await CajaService.getResumenCierre(req.params.jornadaId);
+    const resumen = await CajaService.getResumenCierre(req.params.jornadaId, req.user.id);
     res.json(resumen);
   } catch (error) {
     res.status(500).json({ message: error.message });

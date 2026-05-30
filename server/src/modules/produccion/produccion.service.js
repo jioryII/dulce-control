@@ -1,23 +1,31 @@
 const pool = require('../../config/db');
 
 class ProduccionService {
-  static async getByJornada(jornadaId) {
+  static async getByJornada(jornadaId, userId) {
     const { rows } = await pool.query(
       `SELECT p.*, prod.nombre as producto_nombre 
        FROM produccion p 
        JOIN productos prod ON p.producto_id = prod.id 
-       WHERE p.jornada_id = $1`,
-      [jornadaId]
+       JOIN jornadas j ON p.jornada_id = j.id
+       WHERE p.jornada_id = $1 AND j.created_by = $2`,
+      [jornadaId, userId]
     );
     return rows;
   }
 
-  static async registrar(data) {
+  static async registrar(data, userId) {
     const { jornada_id, producto_id, cantidad, observacion } = data;
     const client = await pool.connect();
     
     try {
       await client.query('BEGIN');
+
+      // Validar jornada abierta
+      const { rows: jornadaRows } = await client.query(
+        "SELECT id FROM jornadas WHERE id = $1 AND estado = 'abierta' AND created_by = $2",
+        [jornada_id, userId]
+      );
+      if (jornadaRows.length === 0) throw new Error('Jornada no válida o no está abierta');
 
       // 1. Insertar registro de producción
       const { rows: prodRows } = await client.query(
@@ -26,9 +34,8 @@ class ProduccionService {
       );
 
       // 2. Actualizar stock diario
-      // Primero verificamos si ya existe entrada para este producto en esta jornada
       const { rows: stockExists } = await client.query(
-        'SELECT id FROM stock_diario WHERE jornada_id = $1 AND producto_id = $2',
+        'SELECT id, stock_actual FROM stock_diario WHERE jornada_id = $1 AND producto_id = $2',
         [jornada_id, producto_id]
       );
 
@@ -54,20 +61,39 @@ class ProduccionService {
     }
   }
 
-  static async eliminar(id) {
+  static async eliminar(id, userId) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      // Obtener datos antes de borrar para revertir stock
-      const { rows } = await client.query('SELECT * FROM produccion WHERE id = $1', [id]);
+      // Obtener datos y validar
+      const { rows } = await client.query(
+        `SELECT p.* FROM produccion p 
+         JOIN jornadas j ON p.jornada_id = j.id 
+         WHERE p.id = $1 AND j.estado = 'abierta' AND j.created_by = $2`, 
+        [id, userId]
+      );
+
       if (rows.length > 0) {
         const { jornada_id, producto_id, cantidad } = rows[0];
-        await client.query(
-          'UPDATE stock_diario SET stock_actual = stock_actual - $1 WHERE jornada_id = $2 AND producto_id = $3',
-          [cantidad, jornada_id, producto_id]
+        
+        const { rows: stockRows } = await client.query(
+          'SELECT stock_actual FROM stock_diario WHERE jornada_id = $1 AND producto_id = $2',
+          [jornada_id, producto_id]
         );
+
+        if (stockRows.length > 0 && stockRows[0].stock_actual >= cantidad) {
+          await client.query(
+            'UPDATE stock_diario SET stock_actual = stock_actual - $1 WHERE jornada_id = $2 AND producto_id = $3',
+            [cantidad, jornada_id, producto_id]
+          );
+        } else {
+          throw new Error('No se puede eliminar la producción: el stock actual es menor a la cantidad producida (ya se vendió)');
+        }
+
         await client.query('DELETE FROM produccion WHERE id = $1', [id]);
+      } else {
+         throw new Error('Producción no encontrada o jornada cerrada');
       }
 
       await client.query('COMMIT');

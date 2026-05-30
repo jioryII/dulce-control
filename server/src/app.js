@@ -29,6 +29,7 @@ app.use('/api/clientes', require('./modules/clientes/clientes.routes'));
 app.use('/api/vehiculos', require('./modules/vehiculos/vehiculo.routes'));
 app.use('/api/stock', require('./modules/stock/stock.routes'));
 app.use('/api/caja', require('./modules/caja/caja.routes'));
+app.use('/api/contingencias', require('./modules/contingencias/contingencias.routes'));
 app.use('/api/reportes', require('./modules/reportes/reportes.routes'));
 app.use('/api/admin', require('./modules/admin/admin.routes'));
 

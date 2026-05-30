@@ -14,7 +14,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  User as UserIcon
+  User as UserIcon,
+  AlertOctagon
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -32,6 +33,7 @@ const Sidebar = () => {
     { name: 'Productos', icon: Tags, path: '/productos' },
     { name: 'Vehículos', icon: Truck, path: '/vehiculos' },
     { name: 'Clientes', icon: Users, path: '/clientes' },
+    { name: 'Contingencias', icon: AlertOctagon, path: '/contingencias' },
     { name: 'Reportes', icon: BarChart3, path: '/reportes' },
     { name: 'Configuración', icon: Settings, path: '/configuracion' },
   ];

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 import { 
   ClipboardCheck, Truck, Clock, DollarSign, 
   Search, Calendar, Loader2, CheckCircle2, 
-  AlertCircle, ArrowRight, Save, X 
+  AlertCircle, ArrowRight, Save, X, Package
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -17,7 +17,8 @@ const LiquidacionPage = () => {
   const [formData, setFormData] = useState({
     hora_llegada: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
     total_vendido: '',
-    observacion: ''
+    observacion: '',
+    productos: []
   });
 
   const api = axios.create({
@@ -45,29 +46,68 @@ const LiquidacionPage = () => {
   const liquidarMutation = useMutation({
     mutationFn: (data) => api.post('/vehiculos/liquidaciones', data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['envios-activos', 'dashboard-stats']);
+      queryClient.invalidateQueries({ queryKey: ['envios-activos'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-diario'] });
       toast.success('Liquidación registrada correctamente');
       setIsModalOpen(false);
       setSelectedEnvio(null);
-      setFormData({ 
-        hora_llegada: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), 
-        total_vendido: '', 
-        observacion: '' 
-      });
     },
     onError: () => toast.error('Error al registrar la liquidación')
   });
 
   const handleOpenLiquidar = (envio) => {
     setSelectedEnvio(envio);
+    
+    // Inicializar productos de formData basado en lo que se envió
+    const prodsIniciales = envio.productos.map(p => ({
+      producto_id: p.producto_id,
+      producto_nombre: p.producto_nombre,
+      precio_unit: parseFloat(p.precio_unit) || 0,
+      cantidad_enviada: p.cantidad_enviada,
+      cantidad_restante: 0
+    }));
+
+    setFormData({ 
+      hora_llegada: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), 
+      total_vendido: '', 
+      observacion: '',
+      productos: prodsIniciales
+    });
+    
     setIsModalOpen(true);
   };
+
+  const handleProductChange = (index, field, value) => {
+    const updatedProducts = [...formData.productos];
+    let val = parseInt(value) || 0;
+    if (val < 0) val = 0;
+    if (val > updatedProducts[index].cantidad_enviada) val = updatedProducts[index].cantidad_enviada;
+    
+    updatedProducts[index][field] = val;
+    setFormData({ ...formData, productos: updatedProducts });
+  };
+
+  const calculateTotal = () => {
+    return formData.productos.reduce((sum, p) => {
+      const vendidos = p.cantidad_enviada - p.cantidad_restante;
+      return sum + (vendidos * p.precio_unit);
+    }, 0);
+  };
+
+  // Set default total vendido to calculated total if empty or just automatically
+  useEffect(() => {
+    if (isModalOpen && formData.productos.length > 0) {
+      // Optional: Auto-fill if desired, but user should probably confirm
+    }
+  }, [formData.productos, isModalOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     liquidarMutation.mutate({
       envio_id: selectedEnvio.id,
-      ...formData
+      ...formData,
+      total_vendido: parseFloat(formData.total_vendido) || 0
     });
   };
 
@@ -84,13 +124,13 @@ const LiquidacionPage = () => {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
       <div className="flex flex-col gap-2">
         <h2 className="text-3xl font-black text-text-primary tracking-tight flex items-center gap-3">
           <div className="p-2 bg-brand-primary/10 rounded-apple-lg">
             <ClipboardCheck className="text-brand-primary" size={28} />
           </div>
-          Liquidación de Repartidores
+          Liquidación de Vehículos
         </h2>
         <p className="text-text-muted text-sm font-medium">Gestiona el retorno de vehículos y el cuadre de ventas externas.</p>
       </div>
@@ -102,10 +142,6 @@ const LiquidacionPage = () => {
               <Truck size={20} className="text-brand-primary" />
               Vehículos en Ruta ({enviosActivos.length})
             </h3>
-            <div className="bg-orange-50 text-orange-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-orange-100 flex items-center gap-2">
-               <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-               Enviados hoy
-            </div>
           </div>
 
           {isLoading ? (
@@ -116,7 +152,6 @@ const LiquidacionPage = () => {
             <div className="py-20 text-center bg-bg-primary/30 rounded-apple-xl border-2 border-dashed border-border">
                <CheckCircle2 size={48} className="mx-auto text-green-500 opacity-20 mb-4" />
                <p className="text-text-muted font-medium">No hay envíos pendientes de liquidación.</p>
-               <p className="text-[10px] text-text-muted uppercase mt-1 font-bold">Todo en orden</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -141,7 +176,7 @@ const LiquidacionPage = () => {
                     onClick={() => handleOpenLiquidar(envio)}
                     className="w-full py-4 bg-bg-secondary text-text-primary font-bold rounded-apple-xl flex items-center justify-center gap-2 hover:bg-brand-primary hover:text-white transition-all group/btn"
                   >
-                    Liquidar Ventas
+                    Liquidar Envío
                     <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
                   </button>
                 </div>
@@ -154,34 +189,57 @@ const LiquidacionPage = () => {
       {/* Liquidation Modal */}
       {isModalOpen && selectedEnvio && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-          <div className="bg-white w-full max-w-[420px] rounded-[40px] shadow-2xl z-10 overflow-hidden animate-in zoom-in duration-300">
-            <div className="p-8 border-b border-border flex justify-between items-center bg-bg-primary/30">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
+          <div className="bg-white w-full max-w-[500px] rounded-[32px] shadow-2xl z-10 overflow-hidden animate-in zoom-in duration-300 flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-border flex justify-between items-center bg-bg-primary/30">
               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 bg-brand-soft rounded-apple-lg flex items-center justify-center text-brand-primary">
-                    <DollarSign size={24} />
+                 <div className="w-10 h-10 bg-brand-soft rounded-apple-lg flex items-center justify-center text-brand-primary">
+                    <DollarSign size={20} />
                  </div>
                  <div>
-                    <h3 className="text-xl font-black text-text-primary tracking-tight">Liquidar Envío</h3>
+                    <h3 className="text-lg font-black text-text-primary tracking-tight">Liquidar Envío</h3>
                     <p className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">{selectedEnvio.vehiculo_nombre}</p>
                  </div>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="text-text-muted hover:text-text-primary">
-                <X size={28} />
+              <button onClick={() => setIsModalOpen(false)} className="text-text-muted hover:text-text-primary bg-bg-primary w-8 h-8 rounded-full flex items-center justify-center">
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
-               <div className="bg-orange-50 p-4 rounded-apple-xl border border-orange-100 flex gap-3">
-                  <AlertCircle className="text-orange-500 shrink-0" size={20} />
-                  <p className="text-xs text-orange-700 font-medium">
-                    Registra el total de dinero recaudado por el repartidor tras su jornada de venta externa.
-                  </p>
+            <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
+               <div className="space-y-4">
+                 <h4 className="font-bold text-sm uppercase tracking-widest text-text-muted">Productos Enviados</h4>
+                 {formData.productos.map((prod, index) => (
+                   <div key={index} className="flex items-center justify-between p-3 bg-bg-primary/50 border border-border rounded-apple-lg">
+                     <div className="flex-1">
+                       <p className="font-bold text-sm truncate">{prod.producto_nombre}</p>
+                       <p className="text-xs text-text-muted">Enviados: <span className="font-black text-text-primary">{prod.cantidad_enviada}</span></p>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       <label className="text-[10px] font-bold text-text-muted uppercase text-right leading-tight">
+                         Sobró
+                       </label>
+                       <input 
+                         type="number"
+                         min="0"
+                         max={prod.cantidad_enviada}
+                         className="input-pastel w-20 text-center font-mono font-bold"
+                         value={prod.cantidad_restante}
+                         onChange={(e) => handleProductChange(index, 'cantidad_restante', e.target.value)}
+                       />
+                     </div>
+                   </div>
+                 ))}
+               </div>
+
+               <div className="bg-brand-soft/30 p-4 rounded-apple-xl border border-brand-accent/20 flex items-center justify-between">
+                 <span className="font-black text-xs uppercase tracking-widest text-brand-primary">Total Calculado</span>
+                 <span className="font-mono text-2xl font-black text-brand-primary">S/ {calculateTotal().toFixed(2)}</span>
                </div>
 
                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-text-muted uppercase tracking-widest px-1">Hora Retorno</label>
+                    <label className="text-xs font-black text-text-muted uppercase tracking-widest px-1">Hora Llegada</label>
                     <div className="relative">
                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                        <input 
@@ -194,14 +252,14 @@ const LiquidacionPage = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-text-muted uppercase tracking-widest px-1">Monto Recaudado</label>
+                    <label className="text-xs font-black text-text-muted uppercase tracking-widest px-1 text-red-500">Monto Entregado</label>
                     <div className="relative">
                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                        <input 
                          type="number" 
-                         step="0.01"
+                         step="0.10"
                          required
-                         className="input-pastel w-full pl-10"
+                         className="input-pastel w-full pl-10 font-mono font-black"
                          placeholder="0.00"
                          value={formData.total_vendido}
                          onChange={(e) => setFormData({...formData, total_vendido: e.target.value})}
@@ -211,9 +269,9 @@ const LiquidacionPage = () => {
                </div>
 
                <div className="space-y-2">
-                  <label className="text-xs font-black text-text-muted uppercase tracking-widest px-1">Observación (Opcional)</label>
+                  <label className="text-xs font-black text-text-muted uppercase tracking-widest px-1">Observación</label>
                   <textarea 
-                    className="input-pastel w-full h-24 py-3 resize-none"
+                    className="input-pastel w-full h-20 py-2 resize-none text-sm"
                     placeholder="Ej: Vendió todo, sobraron 2 panes..."
                     value={formData.observacion}
                     onChange={(e) => setFormData({...formData, observacion: e.target.value})}
@@ -223,9 +281,9 @@ const LiquidacionPage = () => {
                <button 
                  type="submit" 
                  disabled={liquidarMutation.isPending}
-                 className="w-full btn-primary py-4 text-lg flex items-center justify-center gap-3 shadow-xl shadow-brand-primary/20"
+                 className="w-full btn-primary py-4 text-base font-bold flex items-center justify-center gap-2 shadow-xl shadow-brand-primary/20"
                >
-                 {liquidarMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                 {liquidarMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : <Save size={18} />}
                  Confirmar Liquidación
                </button>
             </form>

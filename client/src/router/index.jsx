@@ -14,6 +14,7 @@ import StockPage from '../pages/StockPage';
 import LiquidacionPage from '../pages/LiquidacionPage';
 import ReportesPage from '../pages/ReportesPage';
 import ConfiguracionPage from '../pages/ConfiguracionPage';
+import ContingenciasPage from '../pages/ContingenciasPage';
 
 const AppRouter = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -148,6 +149,19 @@ const AppRouter = () => {
           isAuthenticated ? (
             <MainLayout>
               <ConfiguracionPage />
+            </MainLayout>
+          ) : (
+            <Navigate to="/login" />
+          )
+        } 
+      />
+
+      <Route 
+        path="/contingencias" 
+        element={
+          isAuthenticated ? (
+            <MainLayout>
+              <ContingenciasPage />
             </MainLayout>
           ) : (
             <Navigate to="/login" />

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingCart, Package, Users, TrendingUp, Sparkles, ArrowUpRight, Calendar, Loader2, X, Check, AlertCircle, FileText, ChevronRight, Clock } from 'lucide-react';
+import { ShoppingCart, Package, Users, TrendingUp, Sparkles, ArrowUpRight, Calendar, Loader2, X, Check, AlertCircle, FileText, ChevronRight, Clock, BarChart3 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const DashboardPage = () => {
   const isMobile = useIsMobile();
@@ -48,6 +49,14 @@ const DashboardPage = () => {
     enabled: !!jornada?.id
   });
 
+  const { data: ventasMesActual, isLoading: isLoadingVentasMes } = useQuery({
+    queryKey: ['ventas-mes-actual'],
+    queryFn: async () => {
+      const { data } = await api.get('/reportes/ventas/mes-actual');
+      return data;
+    }
+  });
+
   const { data: resumenCaja } = useQuery({
     queryKey: ['resumen-caja', jornada?.id],
     queryFn: async () => {
@@ -60,7 +69,8 @@ const DashboardPage = () => {
   const cerrarJornadaMutation = useMutation({
     mutationFn: (data) => api.post('/caja/cerrar', data),
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['jornada-hoy', 'dashboard-stats']);
+      queryClient.invalidateQueries({ queryKey: ['jornada-hoy'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       toast.success(`Jornada cerrada. Diferencia: S/ ${Number(data.data.diferencia || 0).toFixed(2)}`);
       setIsClosingModalOpen(false);
       setTotalFisico('');
@@ -74,7 +84,8 @@ const DashboardPage = () => {
   const iniciarJornadaMutation = useMutation({
     mutationFn: () => api.post('/jornada/abrir'),
     onSuccess: () => {
-      queryClient.invalidateQueries(['jornada-hoy', 'dashboard-stats']);
+      queryClient.invalidateQueries({ queryKey: ['jornada-hoy'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       toast.success('Jornada iniciada con éxito');
     },
     onError: (error) => {
@@ -184,6 +195,11 @@ const DashboardPage = () => {
     },
   ];
 
+  const chartData = ventasMesActual?.map(item => ({
+    name: new Date(item.fecha).getDate().toString(),
+    ventas: Number(item.total)
+  })) || [];
+
   return (
     <div className="flex flex-col gap-6 md:gap-10 pb-10">
       {/* Hero Welcome Section */}
@@ -232,6 +248,12 @@ const DashboardPage = () => {
             <div>
               <p className="text-text-secondary text-[9px] md:text-[11px] font-black uppercase tracking-widest truncate">{stat.title}</p>
               <h3 className="text-xl md:text-2xl font-black text-text-primary mt-1 tracking-tight">{stat.value}</h3>
+              {stat.title === 'Ventas' && statsData && (
+                <p className="text-[10px] text-text-muted mt-1 leading-tight">
+                  Directas: S/ {Number(statsData.ventas_directas).toFixed(0)} <br/>
+                  Vehículos: S/ {Number(statsData.ventas_vehiculos).toFixed(0)}
+                </p>
+              )}
             </div>
           </div>
         ))}
@@ -239,51 +261,88 @@ const DashboardPage = () => {
 
       {/* Main Content Areas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        {/* Recent Activity */}
-        <div className="lg:col-span-2 card-apple flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-black text-text-primary tracking-tight">Actividad de Producción</h3>
-            <Link to="/produccion" className="text-xs font-black text-brand-primary hover:underline flex items-center gap-1">
-              Ver todo
-              <ChevronRight size={14} />
-            </Link>
-          </div>
-          
-          <div className={`${isMobile ? 'max-h-72' : 'h-72'} overflow-y-auto pr-2 custom-scrollbar`}>
-            {isLoadingProduccion ? (
-              <div className="h-full flex items-center justify-center">
-                <Loader2 className="animate-spin text-brand-primary" size={32} />
-              </div>
-            ) : !produccionHoy || produccionHoy.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center border-2 border-dashed border-border rounded-apple-lg text-text-muted bg-bg-primary/30 py-10 md:py-0">
-                <div className="w-16 h-16 bg-white dark:bg-bg-dark rounded-full shadow-sm flex items-center justify-center mb-4">
-                  <Package size={32} className="opacity-20" />
+        {/* Charts and Recent Activity */}
+        <div className="lg:col-span-2 space-y-6 md:space-y-8">
+          {/* Chart */}
+          <div className="card-apple flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-black text-text-primary tracking-tight flex items-center gap-2">
+                <BarChart3 className="text-brand-primary" size={20} />
+                Ventas del Mes Actual
+              </h3>
+            </div>
+            <div className="h-64 w-full">
+              {isLoadingVentasMes ? (
+                <div className="h-full flex items-center justify-center">
+                  <Loader2 className="animate-spin text-brand-primary" size={32} />
                 </div>
-                <p className="font-bold text-xs uppercase tracking-widest">Sin actividad</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {produccionHoy.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between p-3 md:p-4 bg-bg-primary/50 dark:bg-bg-dark rounded-apple-lg border border-border/50 hover:border-brand-soft transition-all">
-                    <div className="flex items-center gap-3 md:gap-4">
-                      <div className="w-8 h-8 md:w-10 md:h-10 bg-pastel-cyan dark:bg-cyan-900/20 rounded-full flex items-center justify-center text-cyan-700 dark:text-cyan-400">
-                        <Package size={isMobile ? 16 : 20} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-text-primary text-sm truncate">{p.producto_nombre}</p>
-                        <p className="text-[9px] text-text-muted uppercase font-black tracking-widest flex items-center gap-1">
-                          <Clock size={10} />
-                          {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-base md:text-lg font-black text-brand-primary">+{p.cantidad}</p>
-                    </div>
+              ) : chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9CA3AF' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9CA3AF' }} />
+                    <Tooltip 
+                      cursor={{ fill: 'transparent' }}
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+                    />
+                    <Bar dataKey="ventas" fill="#E67E43" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center border-2 border-dashed border-border rounded-apple-lg text-text-muted bg-bg-primary/30">
+                  <p className="font-bold text-xs uppercase tracking-widest">Sin datos este mes</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Activity */}
+          <div className="card-apple flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-black text-text-primary tracking-tight">Actividad de Producción</h3>
+              <Link to="/produccion" className="text-xs font-black text-brand-primary hover:underline flex items-center gap-1">
+                Ver todo
+                <ChevronRight size={14} />
+              </Link>
+            </div>
+            
+            <div className={`${isMobile ? 'max-h-72' : 'h-72'} overflow-y-auto pr-2 custom-scrollbar`}>
+              {isLoadingProduccion ? (
+                <div className="h-full flex items-center justify-center">
+                  <Loader2 className="animate-spin text-brand-primary" size={32} />
+                </div>
+              ) : !produccionHoy || produccionHoy.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center border-2 border-dashed border-border rounded-apple-lg text-text-muted bg-bg-primary/30 py-10 md:py-0">
+                  <div className="w-16 h-16 bg-white dark:bg-bg-dark rounded-full shadow-sm flex items-center justify-center mb-4">
+                    <Package size={32} className="opacity-20" />
                   </div>
-                ))}
-              </div>
-            )}
+                  <p className="font-bold text-xs uppercase tracking-widest">Sin actividad</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {produccionHoy.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between p-3 md:p-4 bg-bg-primary/50 dark:bg-bg-dark rounded-apple-lg border border-border/50 hover:border-brand-soft transition-all">
+                      <div className="flex items-center gap-3 md:gap-4">
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-pastel-cyan dark:bg-cyan-900/20 rounded-full flex items-center justify-center text-cyan-700 dark:text-cyan-400">
+                          <Package size={isMobile ? 16 : 20} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-text-primary text-sm truncate">{p.producto_nombre}</p>
+                          <p className="text-[9px] text-text-muted uppercase font-black tracking-widest flex items-center gap-1">
+                            <Clock size={10} />
+                            {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-base md:text-lg font-black text-brand-primary">+{p.cantidad}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -359,7 +418,8 @@ const DashboardPage = () => {
       {isClosingModalOpen && (
         <div className="fixed inset-0 z-[3000] flex items-end md:items-center justify-center p-0 md:p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsClosingModalOpen(false)} />
-          <div className={`bg-white dark:bg-[#1C1C1E] w-full max-w-[500px] rounded-t-[32px] md:rounded-[32px] shadow-2xl z-10 overflow-hidden animate-in ${isMobile ? 'slide-in-from-bottom' : 'zoom-in'} duration-300 border-t md:border border-border flex flex-col max-h-[95vh]`}>            {isMobile && <div className="w-12 h-1.5 bg-border dark:bg-[#3A3A3C] rounded-full mx-auto mt-4" />}
+          <div className={`bg-white dark:bg-[#1C1C1E] w-full max-w-[500px] rounded-t-[32px] md:rounded-[32px] shadow-2xl z-10 overflow-hidden animate-in ${isMobile ? 'slide-in-from-bottom' : 'zoom-in'} duration-300 border-t md:border border-border flex flex-col max-h-[95vh]`}>            
+            {isMobile && <div className="w-12 h-1.5 bg-border dark:bg-[#3A3A3C] rounded-full mx-auto mt-4" />}
             
             <div className="p-6 border-b border-border flex justify-between items-center bg-bg-primary/30">
               <div className="flex items-center gap-3">

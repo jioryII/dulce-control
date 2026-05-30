@@ -7,6 +7,7 @@ router.use(authMiddleware);
 
 router.get('/hoy', jornadaController.getHoy);
 router.get('/stats/hoy', jornadaController.getStats);
+router.get('/historial', jornadaController.getHistorial);
 router.post('/abrir', jornadaController.abrir);
 router.put('/:id/cerrar', jornadaController.cerrar);
 

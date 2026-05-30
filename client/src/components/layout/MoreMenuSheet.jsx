@@ -7,7 +7,8 @@ import {
   BarChart3, 
   Settings, 
   LogOut, 
-  X 
+  X,
+  AlertOctagon
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -16,6 +17,7 @@ const SECONDARY_ITEMS = [
   { name: 'Productos',    icon: Tags,       path: '/productos' },
   { name: 'Vehículos',    icon: Truck,      path: '/vehiculos' },
   { name: 'Clientes',     icon: Users,      path: '/clientes' },
+  { name: 'Contingencias', icon: AlertOctagon, path: '/contingencias' },
   { name: 'Reportes',     icon: BarChart3,  path: '/reportes' },
   { name: 'Configuración', icon: Settings,   path: '/configuracion' },
 ];

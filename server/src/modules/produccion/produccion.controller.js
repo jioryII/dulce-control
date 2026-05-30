@@ -2,7 +2,7 @@ const ProduccionService = require('./produccion.service');
 
 const getByJornada = async (req, res) => {
   try {
-    const produccion = await ProduccionService.getByJornada(req.params.jornada_id);
+    const produccion = await ProduccionService.getByJornada(req.params.jornada_id, req.user.id);
     res.json(produccion);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener producción' });
@@ -11,19 +11,19 @@ const getByJornada = async (req, res) => {
 
 const registrar = async (req, res) => {
   try {
-    const id = await ProduccionService.registrar(req.body);
+    const id = await ProduccionService.registrar(req.body, req.user.id);
     res.status(201).json({ id, ...req.body });
   } catch (error) {
-    res.status(500).json({ message: 'Error al registrar producción' });
+    res.status(500).json({ message: 'Error al registrar producción: ' + error.message });
   }
 };
 
 const eliminar = async (req, res) => {
   try {
-    await ProduccionService.eliminar(req.params.id);
+    await ProduccionService.eliminar(req.params.id, req.user.id);
     res.json({ message: 'Registro de producción eliminado' });
   } catch (error) {
-    res.status(500).json({ message: 'Error al eliminar registro' });
+    res.status(500).json({ message: 'Error al eliminar registro: ' + error.message });
   }
 };
 
