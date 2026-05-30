@@ -40,7 +40,30 @@ async function setupProd() {
     const tablesExist = res.rows[0].exists;
 
     if (tablesExist) {
-      console.log('✅ Base de datos ya cuenta con las tablas. Continuando...');
+      console.log('✅ Base de datos ya cuenta con las tablas.');
+      
+      // Ejecutar migraciones en caso de que falten columnas
+      console.log('⚡ Verificando y aplicando migraciones...');
+      try {
+        const { execSync } = require('child_process');
+        execSync('node run-migration.js', { cwd: __dirname, stdio: 'inherit' });
+        execSync('node fix_schema.js', { cwd: __dirname, stdio: 'inherit' });
+      } catch(e) {
+        console.log('⚠️ Error menor al aplicar migraciones (pueden ya estar aplicadas):', e.message);
+      }
+
+      // Verificar si existe el usuario Demo
+      const checkDemoQuery = `SELECT EXISTS (SELECT FROM usuarios WHERE email = $1);`;
+      const demoRes = await client.query(checkDemoQuery, [process.env.DEMO_EMAIL || 'demo@dulcecontrol']);
+      
+      if (!demoRes.rows[0].exists) {
+        console.log('🌱 Usuario demo no encontrado, inyectando datos iniciales...');
+        const { execSync } = require('child_process');
+        execSync('node seed.js', { cwd: __dirname, stdio: 'inherit' });
+      } else {
+        console.log('✅ Datos iniciales ya inyectados previamente. Continuando...');
+      }
+
       await client.end();
       return;
     }
@@ -54,10 +77,17 @@ async function setupProd() {
 
     await client.end();
 
-    // 3. Ejecutar el seed para crear el admin (sólo la primera vez)
-    console.log('🌱 Creando usuario administrador inicial...');
+    // 3. Ejecutar migraciones adicionales y el seed
+    console.log('⚡ Aplicando migraciones adicionales...');
     const { execSync } = require('child_process');
-    // Forzamos el directorio de trabajo para que el seed encuentre sus módulos
+    try {
+      execSync('node run-migration.js', { cwd: __dirname, stdio: 'inherit' });
+      execSync('node fix_schema.js', { cwd: __dirname, stdio: 'inherit' });
+    } catch(e) {
+      console.log('⚠️ Error en migraciones:', e.message);
+    }
+
+    console.log('🌱 Creando usuario administrador inicial e inyectando datos...');
     execSync('node seed.js', { 
       cwd: __dirname,
       stdio: 'inherit' 
