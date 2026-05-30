@@ -38,7 +38,12 @@ async function seed() {
       });
       console.log(`✅ Usuario Admin creado con ID: ${adminId}`);
     } catch (e) {
-      console.log(`⚠️ Admin ya existe o hubo un error: ${e.message}`);
+      console.log(`⚠️ Admin ya existe, actualizando credenciales...`);
+      const { rows } = await pool.query('SELECT id FROM usuarios WHERE email = $1', [adminEmail]);
+      if (rows.length > 0) {
+        adminId = rows[0].id;
+        await UserService.changePassword(adminId, adminPass);
+      }
     }
 
     // 2. Crear Demo User
@@ -52,10 +57,13 @@ async function seed() {
       });
       console.log(`✅ Usuario Demo creado con ID: ${demoId}`);
     } catch (e) {
-      console.log(`⚠️ Demo ya existe o hubo un error: ${e.message}`);
-      // Si ya existe, lo buscamos para usar su ID
+      console.log(`⚠️ Demo ya existe, actualizando credenciales...`);
+      // Si ya existe, lo buscamos para usar su ID y actualizar su password
       const { rows } = await pool.query('SELECT id FROM usuarios WHERE email = $1', [demoEmail]);
-      if (rows.length > 0) demoId = rows[0].id;
+      if (rows.length > 0) {
+        demoId = rows[0].id;
+        await UserService.changePassword(demoId, demoPass);
+      }
     }
 
     if (!demoId) {
